@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYUSH AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .screen {
+            display: none;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0;
+            width: 100%;
+        }
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+        .loader {
+            border-top-color: #3b82f6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+        .btn-primary {
+            background-image: linear-gradient(to right, #4ade80, #10b981);
+            color: white;
+            font-weight: bold;
+            border-radius: 9999px;
+            padding: 0.75rem 2rem;
+            transition-property: all;
+            transition-duration: 300ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1);
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #4b5563;
+            font-weight: bold;
+            border-radius: 9999px;
+            padding: 0.75rem 2rem;
+            transition-property: all;
+            transition-duration: 300ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1);
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+            transform: scale(1.05);
+        }
+        .chat-container {
+            height: 60vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .chat-user {
+            background-color: #d1d5db;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.5rem;
+        }
+        .chat-ai {
+            background-color: #e5e7eb;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Screen 1: Landing Page -->
+    <div id="landingScreen" class="screen active relative flex-col items-center justify-center p-6 sm:p-8 bg-cover bg-center bg-no-repeat rounded-xl" style="background-image: url('https://images.unsplash.com/photo-1518173841006-218209214744?q=80&w=2670&auto=format&fit=crop');">
+        <div class="absolute inset-0 bg-gradient-to-br from-green-400 to-sky-500 opacity-70 rounded-xl"></div>
+        <div class="relative z-10 flex flex-col items-center justify-center text-center text-white">
+            <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-4 drop-shadow-lg">
+                AYUSH AI
+            </h1>
+            <p class="text-lg sm:text-xl md:text-2xl font-light max-w-2xl mb-8 drop-shadow-lg">
+                Your Digital Guide to Wellness
+            </p>
+            <button id="startButton" class="btn-primary">
+                Get Started
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen 2: Credentials and Medical Info -->
+    <div id="credentialsScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-lg">
+            <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Your Information</h2>
+            <form id="infoForm" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <div>
+                    <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                    <input type="number" id="age" name="age" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <div>
+                    <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Weight (in kg)</label>
+                    <input type="number" id="weight" name="weight" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <div>
+                    <label for="healthIssue" class="block text-sm font-medium text-gray-700 mb-1">Main Health Concern</label>
+                    <textarea id="healthIssue" name="healthIssue" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" required></textarea>
+                </div>
+                <button type="submit" class="w-full btn-primary">
+                    Proceed
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Screen 3: Dashboard -->
+    <div id="dashboardScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-2xl text-center">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Welcome, <span id="userName">User</span>!</h2>
+            <p class="text-sm text-gray-500 mb-6">How can I help you today?</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button id="dashboardHealthScore" class="flex flex-col items-center p-4 bg-yellow-100 text-yellow-800 rounded-xl hover:bg-yellow-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.088 15.176l-1.921-2.025m-2.224-2.224L5 12a7 7 0 0114 0 7 7 0 01-14 0z"></path></svg>
+                    <span class="font-semibold text-lg">My Health Score</span>
+                </button>
+                <button id="dashboardReport" class="flex flex-col items-center p-4 bg-purple-100 text-purple-800 rounded-xl hover:bg-purple-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0V3a1 1 0 011-1h2a1 1 0 011 1v2M9 5h6m-6 4a3 3 0 11-6 0 3 3 0 016 0zM12 18h9"></path></svg>
+                    <span class="font-semibold text-lg">Analyze a Report</span>
+                </button>
+                <button id="dashboardCure" class="flex flex-col items-center p-4 bg-orange-100 text-orange-800 rounded-xl hover:bg-orange-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6 4h.01M3 21v-4a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                    <span class="font-semibold text-lg">Natural Cures</span>
+                </button>
+                <button id="dashboardDiet" class="flex flex-col items-center p-4 bg-teal-100 text-teal-800 rounded-xl hover:bg-teal-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="font-semibold text-lg">Personalized Diet Plan</span>
+                </button>
+                 <button id="dashboardGeneralConsult" class="flex flex-col items-center p-4 bg-sky-100 text-sky-800 rounded-xl hover:bg-sky-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0-4.97-3.64-9-8.15-9S4.7 7.03 4.7 12c0 1.25.2 2.45.58 3.56l-1.34 1.34-1.25 4.38 4.38-1.25 1.34-1.34C11.55 21.8 15.5 22 17 22c4.3 0 7-4.03 7-9s-2.7-9-7-9z"></path></svg>
+                    <span class="font-semibold text-lg">General Consultation</span>
+                </button>
+                 <button id="dashboardTalkToDoc" class="flex flex-col items-center p-4 bg-green-100 text-green-800 rounded-xl hover:bg-green-200 transition-colors duration-200">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 16H9v-2h2v2zm0-4H9V6h2v8zm5-4h-2V6h2v4z"></path></svg>
+                    <span class="font-semibold text-lg">Talk to a Doctor</span>
+                </button>
+            </div>
+            <button id="backFromDashboardButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+    
+    <!-- Screen 4: Health Score -->
+    <div id="healthScoreScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-lg text-center">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Your AI-Generated Health Score</h2>
+            <div id="scoreResult" class="text-green-600 font-bold text-5xl mb-4">...</div>
+            <div id="scoreExplanation" class="text-gray-700 leading-relaxed mb-6 text-left">
+                <!-- AI-generated markdown content will be rendered here -->
+            </div>
+            <p class="text-sm text-gray-500 italic">Disclaimer: This is a conceptual score for educational purposes and is not a substitute for professional medical advice.</p>
+            <button id="backFromScoreButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen 5: Medical Report Analysis -->
+    <div id="reportScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-lg">
+            <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Analyze a Medical Report</h2>
+            <div class="flex flex-col items-center space-y-4 mb-4">
+                <p class="text-sm text-gray-600">Upload a photo of your report for analysis.</p>
+                <input type="text" id="reportTypeInput" placeholder="e.g., Thyroid Report" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                
+                <!-- File input and image preview -->
+                <input type="file" id="reportFileInput" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <img id="reportPreview" src="https://placehold.co/400x300/E5E7EB/4B5563?text=Image+Preview" alt="Image preview of the uploaded report" class="rounded-lg shadow-lg max-w-full h-auto">
+                
+                <button id="analyzeReportButton" class="btn-primary">Analyze Report</button>
+            </div>
+            <div id="reportAnalysisResult" class="mt-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <p class="text-gray-500">Analysis will appear here...</p>
+            </div>
+            <button id="backFromReportButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+    
+    <!-- Screen 6: Disease & Cure Page -->
+    <div id="diseaseCureScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-lg">
+            <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">🩺 Natural Remedies</h2>
+            <p class="text-sm font-medium text-gray-700 mb-2">Enter a common health issue for a natural cure.</p>
+            <div class="flex space-x-2">
+                <input type="text" id="diseaseInput" placeholder="e.g., Cold, Diabetes, Thyroid" class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button id="getCureButton" class="btn-primary py-2 px-4">Get Cure</button>
+            </div>
+            <div id="cureResult" class="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <p>Remedy will appear here...</p>
+            </div>
+            <button id="backFromCureButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen 7: Personalized Diet Plan -->
+    <div id="dietPlanScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-2xl">
+            <h2 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Your 7-Day Diet Plan</h2>
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Set Your Monthly Budget: ₹<span id="budgetDisplay">5000</span></h3>
+                <input type="range" id="budgetSlider" min="1000" max="20000" value="5000" class="w-full">
+                <div id="dietPlanInfo" class="mt-4 p-4 rounded-lg bg-teal-50 border border-teal-200">
+                    <p class="text-sm text-gray-700">Adjust the budget to see different diet plan recommendations.</p>
+                </div>
+            </div>
+            <button id="generateDietPlanButton" class="btn-primary w-full mb-6">Generate Plan</button>
+            <div id="dietPlanResult" class="overflow-x-auto">
+                <p class="text-center text-gray-500 hidden" id="dietPlanLoading">Generating plan, please wait...</p>
+                <table id="dietPlanTable" class="w-full text-left table-auto border-collapse hidden">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="py-2 px-4 border-b font-bold rounded-tl-lg">Day</th>
+                            <th class="py-2 px-4 border-b font-bold">Breakfast</th>
+                            <th class="py-2 px-4 border-b font-bold">Lunch</th>
+                            <th class="py-2 px-4 border-b font-bold rounded-tr-lg">Dinner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- AI-generated plan will be inserted here -->
+                    </tbody>
+                </table>
+                <p class="text-center text-red-500 hidden mt-4" id="dietPlanError">An error occurred while generating the diet plan. Please try again.</p>
+            </div>
+            <button id="backFromDietButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+    
+    <!-- Screen 8: AI Consultation Chat -->
+    <div id="consultationScreen" class="screen flex-col items-center justify-between p-6 sm:p-8">
+        <div class="card w-full max-w-lg flex flex-col h-full">
+            <h2 id="consultationTitle" class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-4">Consultation</h2>
+            <div id="chatContainer" class="chat-container flex-grow mb-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                <!-- Chat messages will appear here -->
+            </div>
+            <form id="chatForm" class="flex space-x-2">
+                <input type="text" id="chatInput" placeholder="Ask a health question..." class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button type="submit" class="btn-primary py-2 px-4">Send</button>
+            </form>
+            <button id="backFromConsultButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen 9: Doctor Appointment Booking -->
+    <div id="appointmentScreen" class="screen flex-col items-center justify-center p-6 sm:p-8">
+        <div class="card w-full max-w-lg">
+            <div id="booking-section">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Book an Appointment</h1>
+                <p class="text-gray-600 mb-6">Select your doctor, date, and time to schedule an online consultation.</p>
+                
+                <div class="mb-4">
+                    <label for="doctor-select" class="block text-sm font-medium text-gray-700 mb-1">Select Doctor</label>
+                    <select id="doctor-select" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                        <option value="Dr. Anjali Sharma">Dr. Anjali Sharma (General Physician)</option>
+                        <option value="Dr. Rohan Mehta">Dr. Rohan Mehta (Dermatologist)</option>
+                        <option value="Dr. Priya Singh">Dr. Priya Singh (Cardiologist)</option>
+                    </select>
+                </div>
+        
+                <div class="mb-4">
+                    <label for="date-input" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+                    <input type="date" id="date-input" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                </div>
+        
+                <div class="mb-6">
+                    <label for="time-select" class="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
+                    <div id="time-select" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        <button class="time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="10:00 AM">10:00 AM</button>
+                        <button class="time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="11:00 AM">11:00 AM</button>
+                        <button class="time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="12:00 PM">12:00 PM</button>
+                        <button class="time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="02:00 PM">02:00 PM</button>
+                        <button class="time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="03:00 PM">03:00 PM</button>
+                    </div>
+                </div>
+        
+                <button id="book-btn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition duration-200">Book Appointment</button>
+            </div>
+        
+            <div id="confirmation-section" class="hidden">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Appointment Confirmed!</h2>
+                <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Appointment Letter</h3>
+                    <p class="text-gray-700 mb-1"><strong>Doctor:</strong> <span id="conf-doctor" class="font-medium"></span></p>
+                    <p class="text-700 mb-1"><strong>Date:</strong> <span id="conf-date" class="font-medium"></span></p>
+                    <p class="text-gray-700"><strong>Time:</strong> <span id="conf-time" class="font-medium"></span></p>
+                </div>
+                <button id="reschedule-btn" class="w-full mt-6 bg-yellow-500 text-white font-semibold py-3 rounded-xl hover:bg-yellow-600 transition duration-200">Reschedule Appointment</button>
+            </div>
+            
+            <button id="backFromAppointmentButton" class="btn-secondary w-full mt-6">
+                Go Back
+            </button>
+
+            <div id="message-box" class="hidden fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-lg z-50">
+                <p id="message-text"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reschedule Modal -->
+    <div id="reschedule-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Reschedule Appointment</h2>
+            <div class="mb-4">
+                <label for="new-date-input" class="block text-sm font-medium text-gray-700 mb-1">New Date</label>
+                <input type="date" id="new-date-input" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+            </div>
+            <div class="mb-6">
+                <label for="new-time-select" class="block text-sm font-medium text-gray-700 mb-2">New Time Slot</label>
+                <div id="new-time-select" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <button class="new-time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="10:00 AM">10:00 AM</button>
+                    <button class="new-time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="11:00 AM">11:00 AM</button>
+                    <button class="new-time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="12:00 PM">12:00 PM</button>
+                    <button class="new-time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="02:00 PM">02:00 PM</button>
+                    <button class="new-time-slot-btn px-4 py-2 text-sm rounded-lg border border-gray-300 bg-gray-100 text-gray-700 transition duration-200 hover:bg-gray-200" data-time="03:00 PM">03:00 PM</button>
+                </div>
+            </div>
+            <button id="confirm-reschedule-btn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition duration-200 mb-2">Confirm Reschedule</button>
+            <button id="cancel-reschedule-btn" class="w-full bg-gray-200 text-gray-800 font-semibold py-3 rounded-xl hover:bg-gray-300 transition duration-200">Cancel</button>
+        </div>
+    </div>
+
+
+    <script>
+        // 🔒 Backend URL for secure API proxy
+        const BACKEND_URL = "http://localhost:5000";
+
+        const startButton = document.getElementById('startButton');
+        const landingScreen = document.getElementById('landingScreen');
+        const credentialsScreen = document.getElementById('credentialsScreen');
+        const dashboardScreen = document.getElementById('dashboardScreen');
+        const healthScoreScreen = document.getElementById('healthScoreScreen');
+        const reportScreen = document.getElementById('reportScreen');
+        const diseaseCureScreen = document.getElementById('diseaseCureScreen');
+        const dietPlanScreen = document.getElementById('dietPlanScreen');
+        const consultationScreen = document.getElementById('consultationScreen');
+        const appointmentScreen = document.getElementById('appointmentScreen');
+
+        const infoForm = document.getElementById('infoForm');
+        const backFromDashboardButton = document.getElementById('backFromDashboardButton');
+        const backFromScoreButton = document.getElementById('backFromScoreButton');
+        const backFromReportButton = document.getElementById('backFromReportButton');
+        const backFromCureButton = document.getElementById('backFromCureButton');
+        const backFromDietButton = document.getElementById('backFromDietButton');
+        const backFromConsultButton = document.getElementById('backFromConsultButton');
+        const backFromAppointmentButton = document.getElementById('backFromAppointmentButton');
+
+        const dashboardHealthScore = document.getElementById('dashboardHealthScore');
+        const dashboardReport = document.getElementById('dashboardReport');
+        const dashboardCure = document.getElementById('dashboardCure');
+        const dashboardDiet = document.getElementById('dashboardDiet');
+        const dashboardGeneralConsult = document.getElementById('dashboardGeneralConsult');
+        const dashboardTalkToDoc = document.getElementById('dashboardTalkToDoc');
+
+        const analyzeReportButton = document.getElementById('analyzeReportButton');
+        const getCureButton = document.getElementById('getCureButton');
+        const generateDietPlanButton = document.getElementById('generateDietPlanButton');
+        const chatForm = document.getElementById('chatForm');
+        
+        const reportFileInput = document.getElementById('reportFileInput');
+        const reportPreview = document.getElementById('reportPreview');
+
+        let userHealthProfile = {
+            name: '',
+            age: '',
+            weight: '',
+            healthIssue: '',
+            reportAnalysis: ''
+        };
+        let uploadedImageBase64 = null;
+        let reportFileMimeType = "image/jpeg"; // will update dynamically
+        let chatHistory = [];
+        let currentChatType = 'general';
+
+        let appointment = {
+            doctor: '',
+            date: '',
+            time: '',
+        };
+
+        const allScreens = [
+            landingScreen, credentialsScreen, dashboardScreen, 
+            healthScoreScreen, reportScreen, diseaseCureScreen, 
+            dietPlanScreen, consultationScreen, appointmentScreen
+        ];
+
+        function showScreen(screenToShow) {
+            allScreens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+            screenToShow.classList.add('active');
+        }
+
+        function markdownToHtml(markdown) {
+            let html = markdown
+                .replace(/^### (.*$)/gim, '<h3><strong>$1</strong></h3>')
+                .replace(/^## (.*$)/gim, '<h2><strong>$1</strong></h2>')
+                .replace(/^# (.*$)/gim, '<h1><strong>$1</strong></h1>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                .replace(/^- (.*$)/gim, '<li>$1</li>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/__(.*?)__/gim, '<strong>$1</strong>');
+            return html;
+        }
+
+        // Helper function to show a temporary message
+        function showMessage(text) {
+            const msgBox = document.getElementById('message-box');
+            const msgText = document.getElementById('message-text');
+            msgText.textContent = text;
+            msgBox.style.display = 'block';
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 3000);
+        }
+
+        // Screen Navigation
+        startButton.addEventListener('click', () => showScreen(credentialsScreen));
+        infoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            userHealthProfile.name = document.getElementById('name').value;
+            userHealthProfile.age = document.getElementById('age').value;
+            userHealthProfile.weight = document.getElementById('weight').value;
+            userHealthProfile.healthIssue = document.getElementById('healthIssue').value;
+            document.getElementById('userName').textContent = userHealthProfile.name;
+            showScreen(dashboardScreen);
+        });
+
+        backFromDashboardButton.addEventListener('click', () => showScreen(credentialsScreen));
+        backFromScoreButton.addEventListener('click', () => showScreen(dashboardScreen));
+        backFromReportButton.addEventListener('click', () => showScreen(dashboardScreen));
+        backFromCureButton.addEventListener('click', () => showScreen(dashboardScreen));
+        backFromDietButton.addEventListener('click', () => showScreen(dashboardScreen));
+        backFromConsultButton.addEventListener('click', () => showScreen(dashboardScreen));
+        backFromAppointmentButton.addEventListener('click', () => showScreen(dashboardScreen));
+
+        // Dashboard buttons
+        dashboardHealthScore.addEventListener('click', () => {
+            showScreen(healthScoreScreen);
+            generateHealthScore();
+        });
+        dashboardReport.addEventListener('click', () => showScreen(reportScreen));
+        dashboardCure.addEventListener('click', () => showScreen(diseaseCureScreen));
+        dashboardDiet.addEventListener('click', () => showScreen(dietPlanScreen));
+
+        dashboardGeneralConsult.addEventListener('click', () => {
+            currentChatType = 'general';
+            chatHistory = [];
+            document.getElementById('consultationTitle').textContent = "General Consultation";
+            document.getElementById('chatContainer').innerHTML = "";
+            showScreen(consultationScreen);
+        });
+
+        dashboardTalkToDoc.addEventListener('click', () => {
+            // New navigation to the appointment booking screen
+            showScreen(appointmentScreen);
+        });
+
+        async function generateHealthScore() {
+            const scoreResult = document.getElementById('scoreResult');
+            const scoreExplanation = document.getElementById('scoreExplanation');
+            scoreResult.innerHTML = `<div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto"></div>`;
+            scoreExplanation.innerHTML = "<p>Analyzing your health data...</p>";
+
+            let promptText = `Based on the following user data: Name: ${userHealthProfile.name}, Age: ${userHealthProfile.age}, Weight: ${userHealthProfile.weight} kg, Health Concern: ${userHealthProfile.healthIssue}.`;
+            if (userHealthProfile.reportAnalysis) {
+                promptText += ` Also consider this recent medical report analysis: "${userHealthProfile.reportAnalysis}".`;
+            }
+            promptText += ` Generate a conceptual health score out of 100. Provide a structured, multi-paragraph explanation for the score with clear headings and bullet points. Focus on positive motivation and actionable advice. Do not provide a medical diagnosis. The first paragraph should contain the score.`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+            };
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                // Simple parsing for the score
+                const scoreMatch = text && text.match(/Score: (\d+)/);
+                if (scoreMatch) {
+                    scoreResult.textContent = scoreMatch[1];
+                    const explanationText = text.replace(scoreMatch[0], '').trim();
+                    scoreExplanation.innerHTML = markdownToHtml(explanationText);
+                } else {
+                    scoreResult.textContent = "N/A";
+                    scoreExplanation.innerHTML = markdownToHtml(text || "Couldn't compute a score.");
+                }
+            } catch (error) {
+                console.error("Error generating health score:", error);
+                scoreResult.textContent = "N/A";
+                scoreExplanation.innerHTML = "<p>An error occurred. Please try again later.</p>";
+            }
+        }
+
+        // Handle file selection for report analysis
+        reportFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    reportPreview.src = reader.result;
+                    uploadedImageBase64 = reader.result.split(',')[1];
+                    reportFileMimeType = file.type || "image/jpeg"; // ✅ use real mime type
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Medical Report Analysis
+        analyzeReportButton.addEventListener('click', async () => {
+            const reportAnalysisResult = document.getElementById('reportAnalysisResult');
+            const reportType = document.getElementById('reportTypeInput').value.trim();
+
+            if (!uploadedImageBase64) {
+                reportAnalysisResult.innerHTML = `<p class="text-red-500">Please upload an image of a report first.</p>`;
+                return;
+            }
+
+            reportAnalysisResult.innerHTML = `<div class="flex justify-center items-center"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div></div><p class="text-center mt-2">Analyzing image...</p>`;
+            
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: `Analyze the key metrics in this medical report image for a ${reportType || 'general health report'}. Summarize the findings in a structured format with bullet points and clear headings. Do not provide a diagnosis or medical advice.` },
+                            { inlineData: { mimeType: reportFileMimeType, data: uploadedImageBase64 } }
+                        ]
+                    }]
+                };
+                
+                const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const analysisText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not analyze the report.";
+                reportAnalysisResult.innerHTML = markdownToHtml(analysisText);
+                userHealthProfile.reportAnalysis = analysisText;
+            } catch (error) {
+                console.error("Error analyzing medical report:", error);
+                reportAnalysisResult.innerHTML = `<p class="text-red-500">An error occurred during analysis. Please try again.</p>`;
+            }
+        });
+
+        // Natural Cures
+        getCureButton.addEventListener('click', async () => {
+            const disease = document.getElementById('diseaseInput').value.trim();
+            const cureResult = document.getElementById('cureResult');
+            if (!disease) {
+                cureResult.innerHTML = "<p class='text-red-500'>Please enter a health issue.</p>";
+                return;
+            }
+            cureResult.innerHTML = `<div class="flex justify-center items-center"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div></div>`;
+            
+            const promptText = `Provide a natural home remedy for the health issue: "${disease}". Focus on traditional or Ayurvedic suggestions. The response should be a structured format with headings and bullet points.`;
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                tools: [{ "google_search": {} }],
+            };
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const cureText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not find a cure for that. Please try another search.";
+                
+                cureResult.innerHTML = markdownToHtml(cureText);
+                
+            } catch (error) {
+                console.error("Error calling Gemini API for cure:", error);
+                cureResult.innerHTML = `<p class="text-red-500">An error occurred. Please try again.</p>`;
+            }
+        });
+
+        // Personalized Diet Plan
+        const budgetSlider = document.getElementById('budgetSlider');
+        const budgetDisplay = document.getElementById('budgetDisplay');
+        const dietPlanInfo = document.getElementById('dietPlanInfo');
+        const dietPlanLoading = document.getElementById('dietPlanLoading');
+        const dietPlanTable = document.getElementById('dietPlanTable');
+        const dietPlanError = document.getElementById('dietPlanError');
+        
+        budgetSlider.addEventListener('input', () => {
+            budgetDisplay.textContent = budgetSlider.value;
+            let infoText = "";
+            const budget = parseInt(budgetSlider.value);
+            if (budget < 3000) {
+                infoText = "🍎 **Budget Diet Plan:** Focus on seasonal fruits, pulses, and green leafy vegetables.";
+            } else if (budget < 8000) {
+                infoText = "🥗 **Balanced Diet Plan:** Includes nuts, fresh fruits, and millet-based options.";
+            } else {
+                infoText = "🌟 **Premium Diet Plan:** Incorporates organic foods, exotic fruits, and herbal supplements.";
+            }
+            dietPlanInfo.innerHTML = `<p class="text-sm">${infoText}</p>`;
+        });
+
+        generateDietPlanButton.addEventListener('click', async () => {
+            dietPlanLoading.classList.remove('hidden');
+            dietPlanTable.classList.add('hidden');
+            dietPlanError.classList.add('hidden');
+            
+            const userBudget = budgetSlider.value;
+            let promptText = `Generate a 7-day diet plan for a person with the health issue "${userHealthProfile.healthIssue}" and a monthly food budget of ₹${userBudget}.`;
+            if (userHealthProfile.reportAnalysis) {
+                promptText += ` The plan should be specifically tailored based on this report analysis: "${userHealthProfile.reportAnalysis}".`;
+            }
+            promptText += ` The response should be a JSON array of 7 objects. Each object must have 'day', 'breakfast', 'lunch', and 'dinner' properties. Do not include any other text or formatting, just the JSON.`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "day": { "type": "STRING" },
+                                "breakfast": { "type": "STRING" },
+                                "lunch": { "type": "STRING" },
+                                "dinner": { "type": "STRING" }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!jsonText) {
+                    throw new Error("API response was empty or malformed.");
+                }
+                
+                const dietPlan = JSON.parse(jsonText);
+                
+                if (dietPlan && Array.isArray(dietPlan) && dietPlan.length > 0) {
+                    const tableBody = dietPlanTable.querySelector('tbody');
+                    tableBody.innerHTML = '';
+                    dietPlan.forEach(dayPlan => {
+                        const row = document.createElement('tr');
+                        row.classList.add('hover:bg-gray-50', 'transition-colors', 'duration-150');
+                        row.innerHTML = `
+                            <td class="py-3 px-4 border-b font-semibold">${dayPlan.day || ''}</td>
+                            <td class="py-3 px-4 border-b">${dayPlan.breakfast || ''}</td>
+                            <td class="py-3 px-4 border-b">${dayPlan.lunch || ''}</td>
+                            <td class="py-3 px-4 border-b">${dayPlan.dinner || ''}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                    dietPlanTable.classList.remove('hidden');
+                    dietPlanLoading.classList.add('hidden');
+                } else {
+                    throw new Error("Invalid JSON response format. Expected an array with at least one object.");
+                }
+
+            } catch (error) {
+                console.error("Error generating diet plan:", error);
+                dietPlanLoading.classList.add('hidden');
+                dietPlanError.classList.remove('hidden');
+            }
+        });
+        
+        // AI Consultation Chat
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chatInput = document.getElementById('chatInput');
+            const chatContainer = document.getElementById('chatContainer');
+            const userMessage = chatInput.value.trim();
+
+            if (!userMessage) return;
+
+            // Display user message
+            const userBubble = document.createElement('div');
+            userBubble.classList.add('chat-bubble', 'chat-user');
+            userBubble.textContent = userMessage;
+            chatContainer.prepend(userBubble);
+            
+            chatInput.value = '';
+
+            let systemPrompt;
+            systemPrompt = `You are a helpful wellness assistant. Answer user questions in a friendly and informative tone. Use markdown formatting to make your responses easy to read.`;
+            
+            // Add user message to chat history
+            chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+            // Display loading indicator
+            const loadingBubble = document.createElement('div');
+            loadingBubble.classList.add('chat-bubble', 'chat-ai', 'flex', 'items-center');
+            loadingBubble.innerHTML = `<div class="loader ease-linear rounded-full border-2 border-t-2 border-gray-400 h-4 w-4 mr-2"></div><p>Thinking...</p>`;
+            chatContainer.prepend(loadingBubble);
+            
+            try {
+                const payload = {
+                    contents: chatHistory,
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    }
+                };
+                const response = await fetch(`${BACKEND_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const aiResponseText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                // Remove loading indicator
+                chatContainer.removeChild(loadingBubble);
+
+                if (aiResponseText) {
+                    // Display AI response
+                    const aiBubble = document.createElement('div');
+                    aiBubble.classList.add('chat-bubble', 'chat-ai');
+                    aiBubble.innerHTML = markdownToHtml(aiResponseText);
+                    chatContainer.prepend(aiBubble);
+                    
+                    // Add AI message to chat history
+                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+                } else {
+                    const errorBubble = document.createElement('div');
+                    errorBubble.classList.add('chat-bubble', 'chat-ai');
+                    errorBubble.textContent = "Sorry, I couldn't get a response right now. Please try again.";
+                    chatContainer.prepend(errorBubble);
+                }
+
+            } catch (error) {
+                console.error("Error in AI consultation:", error);
+                chatContainer.removeChild(loadingBubble);
+                const errorBubble = document.createElement('div');
+                errorBubble.classList.add('chat-bubble', 'chat-ai');
+                errorBubble.textContent = "An error occurred. Please check your network and try again.";
+                chatContainer.prepend(errorBubble);
+            }
+        });
+
+        // Appointment Booking Logic
+        const timeSlotButtons = document.querySelectorAll('.time-slot-btn');
+        timeSlotButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                timeSlotButtons.forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+                btn.classList.add('bg-blue-500', 'text-white');
+            });
+        });
+
+        const newTimeSlotButtons = document.querySelectorAll('.new-time-slot-btn');
+        newTimeSlotButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                newTimeSlotButtons.forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+                btn.classList.add('bg-blue-500', 'text-white');
+            });
+        });
+        
+        document.getElementById('book-btn').addEventListener('click', () => {
+            const doctor = document.getElementById('doctor-select').value;
+            const date = document.getElementById('date-input').value;
+            const selectedTimeBtn = document.querySelector('.time-slot-btn.bg-blue-500');
+            const time = selectedTimeBtn ? selectedTimeBtn.dataset.time : null;
+
+            if (!doctor || !date || !time) {
+                showMessage("Please select a doctor, date, and time.");
+                return;
+            }
+
+            appointment.doctor = doctor;
+            appointment.date = date;
+            appointment.time = time;
+
+            document.getElementById('conf-doctor').textContent = appointment.doctor;
+            document.getElementById('conf-date').textContent = new Date(appointment.date).toDateString();
+            document.getElementById('conf-time').textContent = appointment.time;
+
+            document.getElementById('booking-section').classList.add('hidden');
+            document.getElementById('confirmation-section').classList.remove('hidden');
+
+            showMessage("Appointment booked successfully!");
+        });
+
+        document.getElementById('reschedule-btn').addEventListener('click', () => {
+            const modal = document.getElementById('reschedule-modal');
+            modal.style.display = 'flex';
+            newTimeSlotButtons.forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+        });
+
+        document.getElementById('confirm-reschedule-btn').addEventListener('click', () => {
+            const newDate = document.getElementById('new-date-input').value;
+            const newSelectedTimeBtn = document.querySelector('.new-time-slot-btn.bg-blue-500');
+            const newTime = newSelectedTimeBtn ? newSelectedTimeBtn.dataset.time : null;
+
+            if (!newDate || !newTime) {
+                showMessage("Please select a new date and time.");
+                return;
+            }
+
+            appointment.date = newDate;
+            appointment.time = newTime;
+
+            document.getElementById('conf-date').textContent = new Date(appointment.date).toDateString();
+            document.getElementById('conf-time').textContent = appointment.time;
+
+            document.getElementById('reschedule-modal').style.display = 'none';
+
+            showMessage("Appointment rescheduled successfully!");
+        });
+
+        document.getElementById('cancel-reschedule-btn').addEventListener('click', () => {
+            document.getElementById('reschedule-modal').style.display = 'none';
+        });
+
+    </script>
+</body>
+</html>
